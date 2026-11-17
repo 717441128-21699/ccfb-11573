@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>天车操作模拟训练系统</title>
+  </head>
+  <body>
+    <!-- 配置页 -->
+    <section id="screen-setup" class="screen">
+      <header class="page-head">
+        <h1>天车操作模拟训练系统</h1>
+        <p class="sub">三维 WebGL2 仿真 · 双摆动力学 · 1 ms 物理步长 · 60 FPS 画面</p>
+      </header>
+
+      <div class="setup-card">
+        <label class="field">
+          <span>学员姓名</span>
+          <input id="student-name" type="text" placeholder="请输入姓名，用于成绩单与 20 小时训练登记" maxlength="20" />
+        </label>
+
+        <div class="field">
+          <span>选择车间</span>
+          <div id="workshop-options" class="option-group"></div>
+        </div>
+
+        <div class="field">
+          <span>选择吊物（质量、吊点、外形不同）</span>
+          <div id="load-options" class="option-group"></div>
+        </div>
+
+        <div class="setup-actions">
+          <button id="btn-start" class="primary">开始模拟作业</button>
+          <button id="btn-coach" class="ghost">教练端 / 成绩单</button>
+        </div>
+
+        <div class="help-box">
+          <h4>操作说明</h4>
+          <ul>
+            <li><b>键盘</b>：A/D 或 ←/→ 大车移动，W/S 或 ↑/↓ 小车移动，Q 起升、E 下降，P 暂停</li>
+            <li><b>手柄</b>：左摇杆控制大车/小车，LT 起升、RT 下降（或 LB/RB 肩键）</li>
+            <li><b>触屏</b>：画面下方六个方向按钮，平板可直接使用</li>
+            <li><b>评分</b>：摆角超 5° 扣分；距障碍物不足 0.5 m 报警；碰上直接判失败；平稳对准垛位落钩</li>
+            <li><b>稳钩要领</b>：跟车稳钩——吊物向前摆时同向点动小车，摆回时回带，体会双摆节奏</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 仿真页 -->
+    <section id="screen-sim" class="screen sim-screen">
+      <div class="sim-topbar">
+        <div>
+          <div id="sim-title" class="sim-title"></div>
+          <div id="target-label" class="target-label"></div>
+        </div>
+        <div class="sim-buttons">
+          <button id="btn-camera" class="ghost small">视角：全局</button>
+          <button id="btn-pause" class="ghost small">暂停 (P)</button>
+          <button id="btn-abort" class="danger small">中止作业</button>
+        </div>
+      </div>
+
+      <div class="sim-stage">
+        <canvas id="gl-canvas"></canvas>
+
+        <div class="hud">
+          <div class="hud-row"><span>用时</span><b id="hud-time">0.0 s</b></div>
+          <div class="hud-row"><span>吊钩摆角</span><b id="hud-hook-swing">0.0°</b></div>
+          <div class="hud-row"><span>吊物摆角</span><b id="hud-load-swing">0.0°</b></div>
+          <div class="hud-row"><span>绳长</span><b id="hud-rope">0 m</b></div>
+          <div class="hud-row"><span>最小净距</span><b id="hud-gap">—</b></div>
+          <div class="hud-row"><span>机构速度</span><b id="hud-speed">0 m/s</b></div>
+          <div class="hud-row"><span id="hud-status" class="status-badge run">作业中</span><b id="hud-fps">60 FPS</b></div>
+        </div>
+
+        <div id="hud-alarm" class="alarm-banner" hidden>报警：吊物距障碍物不足 0.5 米！</div>
+        <div id="pause-hint" class="pause-hint" hidden>已暂停 — 按 P 或点击“继续”恢复</div>
+      </div>
+
+      <div id="touch-controls" class="touch-controls">
+        <div class="touch-group">
+          <button data-dir="gantry-" class="touch-btn">大车 ◀</button>
+          <button data-dir="gantry+" class="touch-btn">大车 ▶</button>
+        </div>
+        <div class="touch-group">
+          <button data-dir="trolley-" class="touch-btn">小车 ▼</button>
+          <button data-dir="trolley+" class="touch-btn">小车 ▲</button>
+        </div>
+        <div class="touch-group">
+          <button data-dir="hoist-" class="touch-btn">起升</button>
+          <button data-dir="hoist+" class="touch-btn">下降</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 成绩单页 -->
+    <section id="screen-result" class="screen">
+      <header class="page-head"><h1>本次作业成绩单</h1></header>
+      <div class="result-card">
+        <div id="result-body"></div>
+        <div class="setup-actions">
+          <button id="btn-retry" class="primary">再练一次</button>
+          <button id="btn-to-coach" class="ghost">查看教练端</button>
+          <button id="btn-home" class="ghost">返回首页</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 教练端 -->
+    <section id="screen-coach" class="screen coach-screen">
+      <header class="page-head coach-head">
+        <div>
+          <h1>教练端 · 学员成绩单</h1>
+          <p class="sub">按摆角、用时、碰撞次数统计；新员工须累计模拟训练满 20 小时方可上岗</p>
+        </div>
+        <div class="sim-buttons">
+          <select id="coach-filter" class="filter-select"><option value="all">全部学员</option></select>
+          <button id="btn-export" class="ghost small">导出 CSV</button>
+          <button id="btn-clear" class="danger small">清空记录</button>
+          <button id="btn-coach-back" class="primary small">返回</button>
+        </div>
+      </header>
+
+      <div class="coach-grid">
+        <div class="coach-card">
+          <h3>按吊物类别统计（事故倾向分析）</h3>
+          <div id="coach-kind-stats" class="table-wrap"></div>
+        </div>
+        <div class="coach-card">
+          <h3>按学员统计（20 小时上岗门槛）</h3>
+          <div id="coach-student-stats" class="table-wrap"></div>
+        </div>
+        <div class="coach-card wide">
+          <h3>逐次练习明细</h3>
+          <div id="coach-records" class="table-wrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
