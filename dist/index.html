@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>天车操作模拟训练系统</title>
+    <script type="module" crossorigin src="/assets/index-CW2nVik4.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BfnfX-F9.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="gl"></canvas>
+
+      <!-- 训练 HUD -->
+      <div id="hud" class="hidden">
+        <div id="topbar">
+          <span id="tb-trainee"></span>
+          <span id="tb-scene"></span>
+          <span class="spacer"></span>
+          <button id="btn-giveup" class="btn small warn">放弃本次</button>
+        </div>
+        <div id="alarm-banner" class="hidden">⚠ 距障碍物不足 0.5 米！</div>
+        <div id="panel-left" class="panel">
+          <div class="row"><label>钢丝绳摆角</label><span id="hud-swing-rope">0.0°</span></div>
+          <div class="row"><label>吊物摆角</label><span id="hud-swing-load">0.0°</span></div>
+          <div class="row"><label>最大摆角</label><span id="hud-swing-max">0.0°</span></div>
+          <div class="row"><label>绳长</label><span id="hud-rope">0.0 m</span></div>
+          <div class="row"><label>大车速度</label><span id="hud-vb">0.00 m/s</span></div>
+          <div class="row"><label>小车速度</label><span id="hud-vt">0.00 m/s</span></div>
+          <div class="row"><label>起升速度</label><span id="hud-vh">0.00 m/s</span></div>
+          <div class="row"><label>用时</label><span id="hud-time">0.0 s</span></div>
+          <div class="row"><label>标准用时</label><span id="hud-par">—</span></div>
+          <div class="row"><label>手柄</label><span id="hud-pad">未连接</span></div>
+        </div>
+        <div id="panel-right" class="panel">
+          <div class="row"><label>摆角扣分</label><span id="hud-ded-swing">0</span></div>
+          <div class="row"><label>报警扣分</label><span id="hud-ded-alarm">0</span></div>
+          <div class="row"><label>超时扣分</label><span id="hud-ded-time">0</span></div>
+          <div class="row"><label>报警次数</label><span id="hud-alarms">0</span></div>
+          <div class="row big"><label>预估得分</label><span id="hud-score">100</span></div>
+        </div>
+        <div id="help">
+          键盘：A/D 或 ←/→ 大车 · W/S 或 ↑/↓ 小车 · R/F 或 PgUp/PgDn 起升 · Shift 微动 · C 跟随视角 · 鼠标拖动旋转 / 滚轮缩放<br />
+          手柄：左摇杆 大车/小车 · 右摇杆或 LT/RT 起升 · LB 微动
+        </div>
+      </div>
+
+      <!-- 开始菜单 -->
+      <div id="menu">
+        <div class="menu-card">
+          <h1>天车操作模拟训练</h1>
+          <p class="sub">新学员上岗前模拟器训练 · 双摆物理 · 稳钩练习</p>
+          <div class="field">
+            <label for="inp-name">学员姓名</label>
+            <input id="inp-name" type="text" maxlength="12" placeholder="输入姓名" />
+          </div>
+          <div class="field">
+            <label>选择车间</label>
+            <div id="workshop-list" class="cards"></div>
+          </div>
+          <div class="field">
+            <label>选择吊物</label>
+            <div id="load-list" class="cards"></div>
+          </div>
+          <div class="menu-actions">
+            <button id="btn-start" class="btn primary">开始训练</button>
+            <button id="btn-dashboard" class="btn">教练成绩单</button>
+          </div>
+          <p class="note">评分规则：摆角持续超 5° 每秒扣 1.5 分（上限 40）· 距障碍 &lt;0.5m 报警每次扣 3 分 · 碰撞直接判失败 · 超标准用时每 10 秒扣 1 分（上限 15）· 落点偏差每 0.1m 扣 1 分（上限 10）</p>
+        </div>
+      </div>
+
+      <!-- 结算 -->
+      <div id="endmodal" class="hidden">
+        <div class="menu-card">
+          <h1 id="end-grade">合格</h1>
+          <div id="end-score">0 分</div>
+          <div id="end-stats" class="stats-grid"></div>
+          <div class="menu-actions">
+            <button id="btn-retry" class="btn primary">再练一次</button>
+            <button id="btn-tomenu" class="btn">返回菜单</button>
+            <button id="btn-end-dashboard" class="btn">成绩单</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 教练成绩单 -->
+      <div id="dashboard" class="hidden">
+        <div class="menu-card wide">
+          <h1>教练成绩单</h1>
+          <div id="dash-summary"></div>
+          <div class="table-wrap">
+            <table id="dash-table">
+              <thead>
+                <tr>
+                  <th>时间</th><th>学员</th><th>车间</th><th>吊物</th><th>结果</th>
+                  <th>得分</th><th>最大摆角</th><th>用时</th><th>报警</th><th>碰撞</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="menu-actions">
+            <button id="btn-dash-back" class="btn primary">返回</button>
+            <button id="btn-dash-clear" class="btn warn">清空记录</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gl-error" class="hidden">当前浏览器不支持 WebGL2，请使用最新版 Chrome / Edge / Firefox。</div>
+    </div>
+  </body>
+</html>

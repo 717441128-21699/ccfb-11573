@@ -1,0 +1,18 @@
+{
+  "name": "crane-sim",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "天车(桥式起重机)操作模拟训练系统 - WebGL2 + TypeScript",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "test:physics": "tsc src/math.ts src/config.ts src/physics.ts scripts/physics-check.ts --outDir node_modules/.cache/physics-check --module commonjs --target es2020 --moduleResolution node --skipLibCheck --strict && echo {\"type\":\"commonjs\"} > node_modules/.cache/physics-check/package.json && node node_modules/.cache/physics-check/scripts/physics-check.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
